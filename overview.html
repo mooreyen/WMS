@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>總覽</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        .navbar {
+            margin-bottom: 20px;
+            background-color: #e9ecef;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .navbar a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        input[type="text"], input[type="number"], select {
+            width: calc(100% - 16px);
+            padding: 5px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .input-row td {
+            padding: 5px;
+        }
+        .add-button-container {
+            margin-top: 15px;
+            text-align: right;
+        }
+        .add-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .add-button:hover {
+            background-color: #45a049;
+        }
+        /* 用於隱藏 Admin 專屬的輸入區塊 */
+        .hidden-input-section {
+            display: none;
+        }
+        /* 刪除按鈕樣式 */
+        .delete-button {
+            background-color: #dc3545; /* 紅色背景 */
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <a href="overview.html">總覽</a>
+        <a href="material_form.html">領入料</a>
+        <a href="#" onclick="logout()">登出</a>
+        <span id="currentUserDisplay" style="margin-left: 20px; font-weight: normal; color: #555;"></span>
+    </div>
+
+    <h1>物料總覽</h1>
+
+    <div class="input-row-container" id="overviewInputSection">
+        <table>
+            <thead>
+                <tr>
+                    <th>料號</th>
+                    <th>品名</th>
+                    <th>型號</th>
+                    <th>規格</th>
+                    <th>單位</th>
+                    <th>數量</th>
+                    <th>類別</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="overviewInputRow">
+                    <td><input type="text" id="inputOverviewPartNumber"></td>
+                    <td><input type="text" id="inputOverviewProductName"></td>
+                    <td><input type="text" id="inputOverviewModel"></td>
+                    <td><input type="text" id="inputOverviewSpecification"></td>
+                    <td><input type="text" id="inputOverviewUnit"></td>
+                    <td><input type="number" id="inputOverviewQuantity" min="0"></td>
+                    <td>
+                        <select id="inputOverviewCategory">
+                            <option value="電料">電料</option>
+                            <option value="機料">機料</option>
+                            <option value="光學">光學</option>
+                            <option value="雜項">雜項</option>
+                        </select>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="add-button-container">
+            <button class="add-button" onclick="addOverviewData()">新增</button>
+        </div>
+    </div>
+
+    <h2 id="overviewTableTitle">物料列表</h2>
+    <table id="overviewTable">
+        <thead>
+            <tr>
+                <th>料號</th>
+                <th>品名</th>
+                <th>型號</th>
+                <th>規格</th>
+                <th>單位</th>
+                <th>數量</th>
+                <th>類別</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+
+    <script>
+        // 將 API_BASE_URL 設定為您 Firebase Cloud Functions 的基礎 URL
+        const API_BASE_URL = 'https://asia-east1-accvisinno.cloudfunctions.net'; // <-- 已更新為您的專案 URL
+        const overviewTableBody = document.getElementById('overviewTable').getElementsByTagName('tbody')[0];
+        const overviewInputSection = document.getElementById('overviewInputSection');
+        let loggedInUserRole = ''; // 儲存登入使用者的角色
+
+        window.onload = async function() {
+            const loggedInUser = sessionStorage.getItem('loggedInUser');
+            const authToken = sessionStorage.getItem('authToken');
+            loggedInUserRole = sessionStorage.getItem('loggedInUserRole'); // 從 sessionStorage 載入角色
+
+            const currentUserDisplay = document.getElementById('currentUserDisplay');
+
+            if (loggedInUser && authToken) {
+                if (currentUserDisplay) {
+                    currentUserDisplay.textContent = `您好，${loggedInUser}！`;
+                }
+
+                // overview.html 專屬邏輯: 根據角色顯示或隱藏新增區塊
+                if (overviewInputSection) { // 確保元素存在
+                    if (loggedInUserRole === 'admin') {
+                        overviewInputSection.classList.remove('hidden-input-section');
+                    } else {
+                        overviewInputSection.classList.add('hidden-input-section');
+                    }
+                }
+                await fetchOverviewData(); // 載入並顯示物料總覽資料
+
+            } else {
+                sessionStorage.clear(); // 清除無效的登入資訊
+                window.location.href = 'login.html'; // 重導回登入頁
+            }
+        };
+
+        // 從後端獲取總覽資料並顯示
+        async function fetchOverviewData() {
+            try {
+                // 從 Cloud Function 獲取物料總覽資料
+                const response = await fetch(`${API_BASE_URL}/getOverviewMaterials`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                displayOverviewData(data); // 顯示獲取的資料
+            } catch (error) {
+                console.error('獲取總覽資料失敗:', error);
+                alert('無法載入物料總覽資料，請檢查後端服務是否運行。');
+            }
+        }
+
+        async function addOverviewData() {
+            // 在前端再次判斷權限，確保只有 admin 能新增
+            if (loggedInUserRole !== 'admin') {
+                alert('您沒有權限新增總覽資料！');
+                return;
+            }
+
+            const inputOverviewPartNumber = document.getElementById('inputOverviewPartNumber').value.trim();
+            const inputOverviewProductName = document.getElementById('inputOverviewProductName').value.trim();
+            const inputOverviewModel = document.getElementById('inputOverviewModel').value.trim();
+            const inputOverviewSpecification = document.getElementById('inputOverviewSpecification').value.trim();
+            const inputOverviewUnit = document.getElementById('inputOverviewUnit').value.trim();
+            const inputOverviewQuantity = document.getElementById('inputOverviewQuantity').value;
+            const inputOverviewCategory = document.getElementById('inputOverviewCategory').value;
+
+            if (!inputOverviewPartNumber || !inputOverviewProductName || inputOverviewQuantity === undefined || inputOverviewQuantity === null || inputOverviewQuantity === "") {
+                alert('請填寫料號、品名和數量！');
+                return;
+            }
+            if (isNaN(parseInt(inputOverviewQuantity)) || parseInt(inputOverviewQuantity) < 0) {
+                alert('數量必須為非負數字！');
+                return;
+            }
+
+            const newMaterial = {
+                partNumber: inputOverviewPartNumber,
+                productName: inputOverviewProductName,
+                model: inputOverviewModel,
+                specification: inputOverviewSpecification,
+                unit: inputOverviewUnit,
+                quantity: inputOverviewQuantity,
+                category: inputOverviewCategory
+            };
+
+            try {
+                // 向 Cloud Function 發送新增物料的請求
+                const response = await fetch(`${API_BASE_URL}/addOverviewMaterial`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-user-role': sessionStorage.getItem('loggedInUserRole') // <-- 已添加權限傳遞
+                    },
+                    body: JSON.stringify(newMaterial)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    alert('物料新增成功！');
+                    await fetchOverviewData(); // 新增成功後重新載入並顯示資料
+                    // 清空輸入欄位
+                    document.getElementById('inputOverviewPartNumber').value = '';
+                    document.getElementById('inputOverviewProductName').value = '';
+                    document.getElementById('inputOverviewModel').value = '';
+                    document.getElementById('inputOverviewSpecification').value = '';
+                    document.getElementById('inputOverviewUnit').value = '';
+                    document.getElementById('inputOverviewQuantity').value = '';
+                    document.getElementById('inputOverviewCategory').value = '電料'; // 預設值
+                } else {
+                    alert('物料新增失敗: ' + (result.message || '未知錯誤'));
+                }
+            } catch (error) {
+                console.error('新增物料請求失敗:', error);
+                alert('新增物料服務暫時無法使用。');
+            }
+        }
+
+        // 顯示總覽資料到表格中
+        function displayOverviewData(data) {
+            overviewTableBody.innerHTML = ''; // 清空表格現有內容
+
+            if (data && data.length > 0) {
+                data.forEach(item => {
+                    const newRow = overviewTableBody.insertRow();
+                    newRow.insertCell(0).textContent = item.partNumber;
+                    newRow.insertCell(1).textContent = item.productName;
+                    newRow.insertCell(2).textContent = item.model;
+                    newRow.insertCell(3).textContent = item.specification;
+                    newRow.insertCell(4).textContent = item.unit;
+                    newRow.insertCell(5).textContent = item.quantity;
+                    newRow.insertCell(6).textContent = item.category;
+
+                    // 新增操作按鈕儲存格
+                    const actionCell = newRow.insertCell(7);
+                    if (loggedInUserRole === 'admin') {
+                        // 如果是管理員，顯示刪除按鈕
+                        const deleteButton = document.createElement('button');
+                        deleteButton.textContent = '刪除';
+                        deleteButton.classList.add('delete-button'); // 添加 class
+                        deleteButton.onclick = () => deleteOverviewMaterial(item.partNumber); // 綁定刪除函式
+                        actionCell.appendChild(deleteButton);
+                    } else {
+                        // 如果是普通使用者，則顯示無權限或空白
+                        actionCell.textContent = '無權限';
+                        actionCell.style.color = '#888';
+                    }
+                });
+            } else {
+                const newRow = overviewTableBody.insertRow();
+                const cell = newRow.insertCell(0);
+                cell.colSpan = 8; // 跨越所有列，包括新增的「操作」列
+                cell.textContent = '目前沒有物料資料。';
+                cell.style.textAlign = 'center';
+                cell.style.color = '#888';
+            }
+        }
+
+        // 刪除物料的函式
+        async function deleteOverviewMaterial(partNumber) {
+            // 再次確認權限，確保前端邏輯的健壯性
+            if (loggedInUserRole !== 'admin') {
+                alert('您沒有權限刪除總覽資料！');
+                return;
+            }
+
+            // 彈出確認視窗，避免誤刪
+            const confirmDelete = confirm(`您確定要刪除料號為 ${partNumber} 的物料嗎？此操作不可逆！`);
+            if (!confirmDelete) {
+                return; // 如果使用者取消，則不做任何事
+            }
+
+            try {
+                // 向 Cloud Function 發送刪除物料的請求
+                const response = await fetch(`${API_BASE_URL}/deleteOverviewMaterial/${partNumber}`, {
+                    method: 'DELETE', // 使用 DELETE 方法
+                    headers: {
+                        'x-user-role': sessionStorage.getItem('loggedInUserRole') // <-- 已添加權限傳遞
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    alert(result.message); // 顯示成功訊息
+                    await fetchOverviewData(); // 刪除成功後重新載入並顯示資料
+                } else {
+                    alert('刪除物料失敗: ' + (result.message || '未知錯誤'));
+                }
+            } catch (error) {
+                console.error('刪除物料請求失敗:', error);
+                alert('刪除物料服務暫時無法使用。');
+            }
+        }
+
+        // 登出功能
+        function logout() {
+            const confirmLogout = confirm("您確定要登出嗎？");
+            if (confirmLogout) {
+                sessionStorage.clear(); // 清除所有 session 儲存的資訊
+                window.location.href = 'login.html'; // 重導回登入頁
+            }
+        }
+    </script>
+
+</body>
+</html>

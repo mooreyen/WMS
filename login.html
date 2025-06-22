@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            margin: 0;
+        }
+        .login-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .input-group input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #message {
+            margin-top: 15px;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>登入</h1>
+        <div class="input-group">
+            <label for="username">帳號:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div class="input-group">
+            <label for="password">密碼:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button onclick="login()">登入</button>
+        <p id="message"></p>
+    </div>
+
+    <script>
+        // 將 API_BASE_URL 設定為您的 Firebase Cloud Functions 基礎 URL
+        const API_BASE_URL = 'https://asia-east1-accvisinno.cloudfunctions.net'; // <-- 已更新為您的專案 URL
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = ''; // Clear previous messages
+
+            if (!username || !password) {
+                messageElement.textContent = '請輸入帳號和密碼。';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    messageElement.textContent = data.message;
+                    messageElement.style.color = 'green';
+                    sessionStorage.setItem('loggedInUser', data.user.name);
+                    sessionStorage.setItem('loggedInUserRole', data.user.role);
+                    sessionStorage.setItem('authToken', data.token); // Store the mock token
+
+                    // Redirect to the overview page after successful login
+                    window.location.href = 'overview.html';
+                } else {
+                    messageElement.textContent = data.message;
+                    messageElement.style.color = 'red';
+                }
+            } catch (error) {
+                console.error('登入請求失敗:', error);
+                messageElement.textContent = '登入服務暫時無法使用，請稍後再試。';
+                messageElement.style.color = 'red';
+            }
+        }
+    </script>
+</body>
+</html>
