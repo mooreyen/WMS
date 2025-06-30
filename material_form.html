@@ -1,0 +1,162 @@
+<!-- ✅ material_form.html (Appwrite 版) -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>領入料</title>
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+    .navbar { background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+    .navbar a { margin-right: 15px; text-decoration: none; color: #007bff; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
+    input, select { width: 100%; padding: 6px; box-sizing: border-box; }
+    button { margin-top: 10px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; }
+    #currentUserDisplay { color: #555; margin-left: 20px; }
+    .log-table-container { max-height: 400px; overflow-y: auto; border: 1px solid #ddd; margin-top: 20px; background: white; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <a href="overview.html">總覽</a>
+    <a href="material_form.html">領入料</a>
+    <a href="#" onclick="logout()">登出</a>
+    <span id="currentUserDisplay"></span>
+  </div>
+
+  <h1>物料領入記錄</h1>
+  <table>
+    <tr>
+      <th>日期</th><th>領入料類型</th><th>料號</th><th>品名</th><th>型號</th><th>規格</th><th>單位</th><th>數量</th><th>填表人</th><th>專案</th><th>備註</th>
+    </tr>
+    <tr>
+      <td><input type="date" id="inputDate"></td>
+      <td><select id="inputReceiveType"><option>領料</option><option>入料</option><option>借料</option><option>歸還</option></select></td>
+      <td><select id="inputPartNumber" onchange="populateMaterialDetails()"></select></td>
+      <td><input type="text" id="inputProductName" readonly></td>
+      <td><input type="text" id="inputModel" readonly></td>
+      <td><input type="text" id="inputSpecification" readonly></td>
+      <td><input type="text" id="inputUnit" readonly></td>
+      <td><input type="number" id="inputQuantity" min="1"></td>
+      <td><input type="text" id="inputFiller" readonly></td>
+      <td><input type="text" id="inputProject"></td>
+      <td><input type="text" id="inputRemarks"></td>
+    </tr>
+  </table>
+  <button onclick="addMaterialLog()">新增記錄</button>
+
+  <h2>物料記錄日誌 (最近50筆)</h2>
+  <div class="log-table-container">
+    <table id="materialLogTable">
+      <thead><tr><th>日期</th><th>類型</th><th>料號</th><th>品名</th><th>數量</th><th>填表人</th><th>專案</th><th>備註</th><th>時間</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const client = new Appwrite.Client()
+      .setEndpoint('https://cloud.appwrite.io/v1')
+      .setProject('accvisinno');
+
+    const account = new Appwrite.Account(client);
+    const db = new Appwrite.Databases(client);
+
+    const DB_ID = 'inventory';
+    const COLLECTION_OVERVIEW = '686242a4003b3d604c5ev';
+    const COLLECTION_RECORDS = '686242b3003c33b8d444';
+
+    let materials = [];
+
+    window.onload = async () => {
+      try {
+        const user = await account.get();
+        document.getElementById('currentUserDisplay').textContent = `您好，${user.name || user.email}`;
+        document.getElementById('inputFiller').value = user.name || user.email;
+
+        const today = new Date();
+        document.getElementById('inputDate').value = today.toISOString().split('T')[0];
+
+        await loadMaterials();
+        await loadRecentLogs();
+      } catch {
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+      }
+    };
+
+    async function loadMaterials() {
+      const res = await db.listDocuments(DB_ID, COLLECTION_OVERVIEW, [Appwrite.Query.limit(100)]);
+      materials = res.documents;
+
+      const partSelect = document.getElementById('inputPartNumber');
+      partSelect.innerHTML = '<option value="">請選擇料號</option>';
+      materials.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.partNumber;
+        opt.textContent = `${item.partNumber} - ${item.productName}`;
+        partSelect.appendChild(opt);
+      });
+    }
+
+    function populateMaterialDetails() {
+      const val = document.getElementById('inputPartNumber').value;
+      const selected = materials.find(m => m.partNumber === val);
+      document.getElementById('inputProductName').value = selected?.productName || '';
+      document.getElementById('inputModel').value = selected?.model || '';
+      document.getElementById('inputSpecification').value = selected?.specification || '';
+      document.getElementById('inputUnit').value = selected?.unit || '';
+    }
+
+    async function addMaterialLog() {
+      const data = {
+        date: document.getElementById('inputDate').value,
+        receiveType: document.getElementById('inputReceiveType').value,
+        partNumber: document.getElementById('inputPartNumber').value,
+        productName: document.getElementById('inputProductName').value,
+        model: document.getElementById('inputModel').value,
+        specification: document.getElementById('inputSpecification').value,
+        unit: document.getElementById('inputUnit').value,
+        quantity: parseInt(document.getElementById('inputQuantity').value),
+        filler: document.getElementById('inputFiller').value,
+        project: document.getElementById('inputProject').value,
+        remarks: document.getElementById('inputRemarks').value,
+        timestamp: new Date().toISOString()
+      };
+      if (!data.date || !data.partNumber || !data.quantity || isNaN(data.quantity)) {
+        alert('請填寫所有必填欄位');
+        return;
+      }
+      await db.createDocument(DB_ID, COLLECTION_RECORDS, 'unique()', data);
+      alert('新增成功');
+      await loadRecentLogs();
+    }
+
+    async function loadRecentLogs() {
+      const res = await db.listDocuments(DB_ID, COLLECTION_RECORDS, [Appwrite.Query.orderDesc("$createdAt"), Appwrite.Query.limit(50)]);
+      const tbody = document.getElementById('materialLogTable').querySelector('tbody');
+      tbody.innerHTML = '';
+      res.documents.forEach(log => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = log.date;
+        row.insertCell().textContent = log.receiveType;
+        row.insertCell().textContent = log.partNumber;
+        row.insertCell().textContent = log.productName;
+        row.insertCell().textContent = log.quantity;
+        row.insertCell().textContent = log.filler;
+        row.insertCell().textContent = log.project;
+        row.insertCell().textContent = log.remarks;
+        row.insertCell().textContent = new Date(log.timestamp).toLocaleString('zh-TW');
+      });
+    }
+
+    function logout() {
+      if (confirm("確定要登出？")) {
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+      }
+    }
+  </script>
+</body>
+</html>

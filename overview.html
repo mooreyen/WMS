@@ -1,0 +1,152 @@
+<!-- ✅ overview.html (Appwrite 版) -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>物料總覽</title>
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+    .navbar { background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+    .navbar a { margin-right: 15px; text-decoration: none; color: #007bff; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
+    input, select { width: 100%; padding: 6px; box-sizing: border-box; }
+    button { margin-top: 10px; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-add { background: #4CAF50; color: white; }
+    .btn-del { background: #dc3545; color: white; }
+    .btn-del:hover { background: #c82333; }
+    #currentUserDisplay { color: #555; margin-left: 20px; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <a href="overview.html">總覽</a>
+    <a href="material_form.html">領入料</a>
+    <a href="#" onclick="logout()">登出</a>
+    <span id="currentUserDisplay"></span>
+  </div>
+
+  <h1>物料總覽</h1>
+  <div id="adminForm" style="display:none">
+    <table>
+      <tr>
+        <th>料號</th><th>品名</th><th>型號</th><th>規格</th><th>單位</th><th>數量</th><th>類別</th>
+      </tr>
+      <tr>
+        <td><input type="text" id="inputPartNumber"></td>
+        <td><input type="text" id="inputProductName"></td>
+        <td><input type="text" id="inputModel"></td>
+        <td><input type="text" id="inputSpecification"></td>
+        <td><input type="text" id="inputUnit"></td>
+        <td><input type="number" id="inputQuantity" min="0"></td>
+        <td>
+          <select id="inputCategory">
+            <option value="電料">電料</option>
+            <option value="機料">機料</option>
+            <option value="光學">光學</option>
+            <option value="雜項">雜項</option>
+          </select>
+        </td>
+      </tr>
+    </table>
+    <button class="btn-add" onclick="addMaterial()">新增物料</button>
+  </div>
+
+  <h2>物料列表</h2>
+  <table id="overviewTable">
+    <thead><tr><th>料號</th><th>品名</th><th>型號</th><th>規格</th><th>單位</th><th>數量</th><th>類別</th><th>操作</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const client = new Appwrite.Client()
+      .setEndpoint('https://cloud.appwrite.io/v1')
+      .setProject('accvisinno');
+
+    const account = new Appwrite.Account(client);
+    const db = new Appwrite.Databases(client);
+
+    const DB_ID = 'inventory';
+    const COLLECTION_OVERVIEW = '686242a4003b3d604c5ev';
+
+    let isAdmin = false;
+
+    window.onload = async () => {
+      try {
+        const user = await account.get();
+        const name = user.name || user.email;
+        document.getElementById('currentUserDisplay').textContent = `您好，${name}`;
+
+        isAdmin = user.labels?.includes('admin');
+        if (isAdmin) document.getElementById('adminForm').style.display = 'block';
+
+        await loadOverview();
+      } catch {
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+      }
+    };
+
+    async function loadOverview() {
+      const res = await db.listDocuments(DB_ID, COLLECTION_OVERVIEW, [Appwrite.Query.limit(100)]);
+      const tbody = document.getElementById('overviewTable').querySelector('tbody');
+      tbody.innerHTML = '';
+      res.documents.forEach(item => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = item.partNumber;
+        row.insertCell().textContent = item.productName;
+        row.insertCell().textContent = item.model;
+        row.insertCell().textContent = item.specification;
+        row.insertCell().textContent = item.unit;
+        row.insertCell().textContent = item.quantity;
+        row.insertCell().textContent = item.category;
+        const opCell = row.insertCell();
+        if (isAdmin) {
+          const btn = document.createElement('button');
+          btn.textContent = '刪除';
+          btn.className = 'btn-del';
+          btn.onclick = () => deleteMaterial(item.$id);
+          opCell.appendChild(btn);
+        } else {
+          opCell.textContent = '無權限';
+        }
+      });
+    }
+
+    async function addMaterial() {
+      const data = {
+        partNumber: document.getElementById('inputPartNumber').value,
+        productName: document.getElementById('inputProductName').value,
+        model: document.getElementById('inputModel').value,
+        specification: document.getElementById('inputSpecification').value,
+        unit: document.getElementById('inputUnit').value,
+        quantity: parseInt(document.getElementById('inputQuantity').value),
+        category: document.getElementById('inputCategory').value
+      };
+      if (!data.partNumber || !data.productName || isNaN(data.quantity)) {
+        alert('請填寫必要欄位'); return;
+      }
+      await db.createDocument(DB_ID, COLLECTION_OVERVIEW, 'unique()', data);
+      alert('新增成功');
+      await loadOverview();
+    }
+
+    async function deleteMaterial(id) {
+      if (confirm('確定刪除？')) {
+        await db.deleteDocument(DB_ID, COLLECTION_OVERVIEW, id);
+        alert('刪除成功');
+        await loadOverview();
+      }
+    }
+
+    function logout() {
+      if (confirm("確定要登出？")) {
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+      }
+    }
+  </script>
+</body>
+</html>

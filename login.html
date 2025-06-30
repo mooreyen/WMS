@@ -1,0 +1,79 @@
+<!-- ✅ login.html (Appwrite 版) -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>登入</title>
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+    .login-box {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #message {
+      margin-top: 10px;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>登入</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="密碼" />
+    <button onclick="login()">登入</button>
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const client = new Appwrite.Client()
+      .setEndpoint('https://cloud.appwrite.io/v1')
+      .setProject('accvisinno');
+
+    const account = new Appwrite.Account(client);
+
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('message');
+      msg.textContent = '';
+
+      try {
+        await account.createEmailSession(email, password);
+        const user = await account.get();
+
+        sessionStorage.setItem('loggedInUser', user.name || user.email);
+        sessionStorage.setItem('loggedInUserRole', user.labels?.includes('admin') ? 'admin' : 'viewer');
+
+        window.location.href = 'overview.html';
+      } catch (error) {
+        msg.textContent = '登入失敗：' + (error.message || '請檢查帳密');
+      }
+    }
+  </script>
+</body>
+</html>
