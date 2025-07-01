@@ -1,4 +1,3 @@
-<!-- ✅ login.html (Appwrite NYC 修正版) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -37,6 +36,7 @@
     #message {
       margin-top: 10px;
       color: red;
+      min-height: 1.2em;
     }
   </style>
 </head>
@@ -57,10 +57,22 @@
     const account = new Appwrite.Account(client);
 
     async function login() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
       const msg = document.getElementById('message');
       msg.textContent = '';
+
+      if (!email || !password) {
+        msg.textContent = '請輸入 Email 與密碼';
+        return;
+      }
+
+      try {
+        // 先刪除所有現有 session，避免重複登入錯誤
+        await account.deleteSessions();
+      } catch (e) {
+        // 如果沒有 session 會報錯，可以忽略
+      }
 
       try {
         await account.createEmailSession(email, password);
