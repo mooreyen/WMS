@@ -68,33 +68,28 @@
   <script>
     const client = new Appwrite.Client()
       .setEndpoint('https://nyc.cloud.appwrite.io/v1')
-      .setProject('68623cf4001bf788000e'); // 用你的 Project ID
+      .setProject('68623cf4001bf788000e');
 
     const account = new Appwrite.Account(client);
     const db = new Appwrite.Databases(client);
 
-    const DB_ID = '68623cf4001bf788000e'; // 請確認你的資料庫 ID68623cf4001bf788000e
-    const COLLECTION_OVERVIEW = '686242a4003b3d604c5ev'; // 總覽料號集合 ID
-    const COLLECTION_RECORDS = '686242b3003c33b8d444'; // 領入料記錄集合 ID
+    const DB_ID = '68623cf4001bf788000e';
+    const COLLECTION_OVERVIEW = '686242a4003b3d604c5ev';
+    const COLLECTION_RECORDS = '686242b3003c33b8d444';
 
     let materials = [];
 
     window.onload = async () => {
       try {
-        // 檢查登入狀態
         const user = await account.get();
         document.getElementById('currentUserDisplay').textContent = `您好，${user.name || user.email}`;
         document.getElementById('inputFiller').value = user.name || user.email;
 
-        // 初始化日期
-        const today = new Date();
-        document.getElementById('inputDate').value = today.toISOString().split('T')[0];
+        document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
 
-        // 載入料號及近期紀錄
         await loadMaterials();
         await loadRecentLogs();
       } catch (error) {
-        // 無法取得用戶，導向登入頁
         sessionStorage.clear();
         window.location.href = 'login.html';
       }
@@ -138,10 +133,12 @@
         remarks: document.getElementById('inputRemarks').value,
         timestamp: new Date().toISOString()
       };
+
       if (!data.date || !data.partNumber || !data.quantity || isNaN(data.quantity)) {
         alert('請填寫所有必填欄位');
         return;
       }
+
       try {
         await db.createDocument(DB_ID, COLLECTION_RECORDS, 'unique()', data);
         alert('新增成功');
@@ -152,7 +149,10 @@
     }
 
     async function loadRecentLogs() {
-      const res = await db.listDocuments(DB_ID, COLLECTION_RECORDS, [Appwrite.Query.orderDesc("$createdAt"), Appwrite.Query.limit(50)]);
+      const res = await db.listDocuments(DB_ID, COLLECTION_RECORDS, [
+        Appwrite.Query.orderDesc("$createdAt"),
+        Appwrite.Query.limit(50)
+      ]);
       const tbody = document.getElementById('materialLogTable').querySelector('tbody');
       tbody.innerHTML = '';
       res.documents.forEach(log => {
@@ -171,15 +171,10 @@
 
     function logout() {
       if (confirm('確定要登出？')) {
-        account.deleteSessions()
-          .then(() => {
-            sessionStorage.clear();
-            window.location.href = 'login.html';
-          })
-          .catch(() => {
-            sessionStorage.clear();
-            window.location.href = 'login.html';
-          });
+        account.deleteSessions().finally(() => {
+          sessionStorage.clear();
+          window.location.href = 'login.html';
+        });
       }
     }
   </script>
