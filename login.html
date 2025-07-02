@@ -6,38 +6,11 @@
   <title>登入</title>
   <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #f0f0f0;
-    }
-    .login-box {
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      width: 300px;
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      box-sizing: border-box;
-    }
-    button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    #message {
-      margin-top: 10px;
-      color: red;
-      min-height: 1.2em;
-    }
+    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f0f0; }
+    .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; }
+    input, button { width: 100%; padding: 10px; margin-top: 10px; box-sizing: border-box; }
+    button { background-color: #007bff; color: white; border: none; cursor: pointer; }
+    #message { margin-top: 10px; color: red; min-height: 1.2em; }
   </style>
 </head>
 <body>
@@ -68,19 +41,14 @@
       }
 
       try {
-        // 先刪除所有現有 session，避免重複登入錯誤
-        await account.deleteSessions();
-      } catch (e) {
-        // 如果沒有 session 會報錯，可以忽略
-      }
+        await account.deleteSessions(); // 清除舊 session
+      } catch (e) {}
 
       try {
         await account.createEmailSession(email, password);
         const user = await account.get();
-
         sessionStorage.setItem('loggedInUser', user.name || user.email);
         sessionStorage.setItem('loggedInUserRole', user.labels?.includes('admin') ? 'admin' : 'viewer');
-
         window.location.href = 'overview.html';
       } catch (error) {
         msg.textContent = '登入失敗：' + (error.message || '請檢查帳密');
