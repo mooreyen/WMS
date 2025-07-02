@@ -1,3 +1,4 @@
+<!-- 檔案：overview.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -62,27 +63,21 @@
   <script>
     const client = new Appwrite.Client()
       .setEndpoint('https://nyc.cloud.appwrite.io/v1')
-      .setProject('68623cf4001bf788000e'); // 你的 Project ID
+      .setProject('68623cf4001bf788000e');
 
     const account = new Appwrite.Account(client);
     const db = new Appwrite.Databases(client);
-
-    const DB_ID = '68623cf4001bf788000e'; // 資料庫 ID
-    const COLLECTION_OVERVIEW = '686242a4003b3d604c5ev'; // 料號集合 ID
+    const DB_ID = '68623cf4001bf788000e';
+    const COLLECTION_OVERVIEW = '686242a4003b3d604c5ev';
 
     let isAdmin = false;
 
     window.onload = async () => {
       try {
         const user = await account.get();
-        const name = user.name || user.email;
-        document.getElementById('currentUserDisplay').textContent = `您好，${name}`;
-
+        document.getElementById('currentUserDisplay').textContent = `您好，${user.name || user.email}`;
         isAdmin = user.labels?.includes('admin');
-        if (isAdmin) {
-          document.getElementById('adminForm').style.display = 'block';
-        }
-
+        if (isAdmin) document.getElementById('adminForm').style.display = 'block';
         await loadOverview();
       } catch (error) {
         sessionStorage.clear();
@@ -131,40 +126,24 @@
         category: document.getElementById('inputCategory').value
       };
       if (!data.partNumber || !data.productName || isNaN(data.quantity)) {
-        alert('請填寫必要欄位');
-        return;
+        alert('請填寫必要欄位'); return;
       }
-      try {
-        await db.createDocument(DB_ID, COLLECTION_OVERVIEW, 'unique()', data);
-        alert('新增成功');
-        await loadOverview();
-      } catch (error) {
-        alert('新增失敗：' + (error.message || error));
-      }
+      await db.createDocument(DB_ID, COLLECTION_OVERVIEW, 'unique()', data);
+      await loadOverview();
     }
 
     async function deleteMaterial(id) {
       if (!confirm('確定刪除？')) return;
-      try {
-        await db.deleteDocument(DB_ID, COLLECTION_OVERVIEW, id);
-        alert('刪除成功');
-        await loadOverview();
-      } catch (error) {
-        alert('刪除失敗：' + (error.message || error));
-      }
+      await db.deleteDocument(DB_ID, COLLECTION_OVERVIEW, id);
+      await loadOverview();
     }
 
     function logout() {
       if (!confirm('確定要登出？')) return;
-      account.deleteSessions()
-        .then(() => {
-          sessionStorage.clear();
-          window.location.href = 'login.html';
-        })
-        .catch(() => {
-          sessionStorage.clear();
-          window.location.href = 'login.html';
-        });
+      account.deleteSessions().finally(() => {
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+      });
     }
   </script>
 </body>
