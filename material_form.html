@@ -104,11 +104,12 @@
       const partSelect = document.getElementById('inputPartNumber');
       partSelect.innerHTML = '<option value="">請選擇料號</option>';
       materials.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item.partNumber;
-        opt.textContent = `${item.partNumber} - ${item.productName}`;
-        partSelect.appendChild(opt);
-      });
+  const opt = document.createElement('option');
+  opt.value = item.partNumber;
+  opt.textContent = item.partNumber; // ✅ 只顯示料號
+  partSelect.appendChild(opt);
+});
+
     }
 
     function populateMaterialDetails() {
