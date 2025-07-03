@@ -1,4 +1,3 @@
-<!-- overview.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -16,6 +15,7 @@
     button { margin-top: 10px; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
     .btn-add { background: #4CAF50; color: white; }
     .btn-del { background: #dc3545; color: white; }
+    .btn-del:hover { background: #c82333; }
     #currentUserDisplay { color: #555; margin-left: 20px; }
   </style>
 </head>
@@ -62,56 +62,62 @@
   <script>
     const client = new Appwrite.Client()
       .setEndpoint('https://nyc.cloud.appwrite.io/v1')
-      .setProject('68623cf4001bf788000e');
+      .setProject('68623cf4001bf788000e'); // ✅ 你的 Project ID
 
     const account = new Appwrite.Account(client);
     const db = new Appwrite.Databases(client);
 
-    const DB_ID = '68623dfd0002bed3a8a8';
+    const DB_ID = '68623dfd0002bed3a8a8'; // ✅ 正確的 Database ID
     const COLLECTION_OVERVIEW = '686242a4003b3d604c5e';
+    const COLLECTION_RECORDS = '686242b3003c33b8d444';
 
     let isAdmin = false;
 
     window.onload = async () => {
-  try {
-    const user = await account.get();
-    const name = user.name || user.email;
-    document.getElementById('currentUserDisplay').textContent = `您好，${name}`;
+      try {
+        const user = await account.get();
+        const name = user.name || user.email;
+        document.getElementById('currentUserDisplay').textContent = `您好，${name}`;
 
-    console.log('目前登入使用者資料：', user);
-    console.log('user.prefs:', user.prefs);
+        isAdmin = user.labels?.includes('admin');
+        if (isAdmin) document.getElementById('adminForm').style.display = 'block';
 
-    const role = user.prefs?.role || 'viewer';
-    sessionStorage.setItem('loggedInUserRole', role);
-    isAdmin = role === 'admin';
-
-    if (isAdmin) {
-      document.getElementById('adminForm').style.display = 'block';
-    }
-
-    await loadOverview();
-  } catch (error) {
-    sessionStorage.clear();
-    window.location.href = 'login.html';
-  }
-};
-
-
+        await loadOverview();
+      } catch (error) {
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+      }
+    };
 
     async function loadOverview() {
       try {
-        const res = await db.listDocuments(DB_ID, COLLECTION_OVERVIEW, [Appwrite.Query.limit(100)]);
-        const tbody = document.querySelector('#overviewTable tbody');
+        const overviewRes = await db.listDocuments(DB_ID, COLLECTION_OVERVIEW, [Appwrite.Query.limit(100)]);
+        const recordRes = await db.listDocuments(DB_ID, COLLECTION_RECORDS, [Appwrite.Query.limit(1000)]);
+
+        const overviewData = overviewRes.documents;
+        const recordData = recordRes.documents;
+
+        const quantityMap = {};
+        recordData.forEach(log => {
+          const part = log.partNumber;
+          const qty = parseInt(log.quantity) || 0;
+          if (!quantityMap[part]) quantityMap[part] = 0;
+          quantityMap[part] += qty;
+        });
+
+        const tbody = document.getElementById('overviewTable').querySelector('tbody');
         tbody.innerHTML = '';
-        res.documents.forEach(item => {
+
+        overviewData.forEach(item => {
           const row = tbody.insertRow();
           row.insertCell().textContent = item.partNumber;
           row.insertCell().textContent = item.productName;
           row.insertCell().textContent = item.model;
           row.insertCell().textContent = item.specification;
           row.insertCell().textContent = item.unit;
-          row.insertCell().textContent = item.quantity;
+          row.insertCell().textContent = quantityMap[item.partNumber] || 0;
           row.insertCell().textContent = item.category;
+
           const opCell = row.insertCell();
           if (isAdmin) {
             const btn = document.createElement('button');
@@ -130,12 +136,12 @@
 
     async function addMaterial() {
       const data = {
-        partNumber: document.getElementById('inputPartNumber').value,
-        productName: document.getElementById('inputProductName').value,
-        model: document.getElementById('inputModel').value,
-        specification: document.getElementById('inputSpecification').value,
-        unit: document.getElementById('inputUnit').value,
-        quantity: parseInt(document.getElementById('inputQuantity').value),
+        partNumber: document.getElementById('inputPartNumber').value.trim(),
+        productName: document.getElementById('inputProductName').value.trim(),
+        model: document.getElementById('inputModel').value.trim(),
+        specification: document.getElementById('inputSpecification').value.trim(),
+        unit: document.getElementById('inputUnit').value.trim(),
+        quantity: parseInt(document.getElementById('inputQuantity').value, 10),
         category: document.getElementById('inputCategory').value
       };
       if (!data.partNumber || !data.productName || isNaN(data.quantity)) {
@@ -163,11 +169,16 @@
     }
 
     function logout() {
-      if (!confirm('確定登出？')) return;
-      account.deleteSessions().finally(() => {
-        sessionStorage.clear();
-        window.location.href = 'login.html';
-      });
+      if (!confirm('確定要登出？')) return;
+      account.deleteSessions()
+        .then(() => {
+          sessionStorage.clear();
+          window.location.href = 'login.html';
+        })
+        .catch(() => {
+          sessionStorage.clear();
+          window.location.href = 'login.html';
+        });
     }
   </script>
 </body>
