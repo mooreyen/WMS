@@ -73,20 +73,24 @@
     let isAdmin = false;
 
     window.onload = async () => {
-      try {
-        const user = await account.get();
-        const name = user.name || user.email;
-        document.getElementById('currentUserDisplay').textContent = `您好，${name}`;
+  try {
+    const user = await account.get();
+    const name = user.name || user.email;
+    document.getElementById('currentUserDisplay').textContent = `您好，${name}`;
 
-        isAdmin = sessionStorage.getItem('loggedInUserRole') === 'admin';
-        if (isAdmin) document.getElementById('adminForm').style.display = 'block';
+    // 從 sessionStorage 取得角色
+    isAdmin = sessionStorage.getItem('loggedInUserRole') === 'admin';
+    if (isAdmin) {
+      document.getElementById('adminForm').style.display = 'block';
+    }
 
-        await loadOverview();
-      } catch {
-        sessionStorage.clear();
-        window.location.href = 'login.html';
-      }
-    };
+    await loadOverview();
+  } catch (error) {
+    sessionStorage.clear();
+    window.location.href = 'login.html';
+  }
+};
+
 
     async function loadOverview() {
       try {
