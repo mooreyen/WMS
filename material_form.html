@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>領入料</title>
   <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
   <style>
@@ -73,8 +73,7 @@
     const account = new Appwrite.Account(client);
     const db = new Appwrite.Databases(client);
 
-    const DB_ID = 'const DB_ID = '68623dfd0002bed3a8a8'; //  正確
-';
+    const DB_ID = '68623dfd0002bed3a8a8';
     const COLLECTION_OVERVIEW = '686242a4003b3d604c5e';
     const COLLECTION_RECORDS = '686242b3003c33b8d444';
 
@@ -86,11 +85,12 @@
         document.getElementById('currentUserDisplay').textContent = `您好，${user.name || user.email}`;
         document.getElementById('inputFiller').value = user.name || user.email;
 
-        document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        document.getElementById('inputDate').value = today.toISOString().split('T')[0];
 
         await loadMaterials();
         await loadRecentLogs();
-      } catch (error) {
+      } catch {
         sessionStorage.clear();
         window.location.href = 'login.html';
       }
@@ -134,12 +134,10 @@
         remarks: document.getElementById('inputRemarks').value,
         timestamp: new Date().toISOString()
       };
-
       if (!data.date || !data.partNumber || !data.quantity || isNaN(data.quantity)) {
         alert('請填寫所有必填欄位');
         return;
       }
-
       try {
         await db.createDocument(DB_ID, COLLECTION_RECORDS, 'unique()', data);
         alert('新增成功');
@@ -150,10 +148,7 @@
     }
 
     async function loadRecentLogs() {
-      const res = await db.listDocuments(DB_ID, COLLECTION_RECORDS, [
-        Appwrite.Query.orderDesc("$createdAt"),
-        Appwrite.Query.limit(50)
-      ]);
+      const res = await db.listDocuments(DB_ID, COLLECTION_RECORDS, [Appwrite.Query.orderDesc("$createdAt"), Appwrite.Query.limit(50)]);
       const tbody = document.getElementById('materialLogTable').querySelector('tbody');
       tbody.innerHTML = '';
       res.documents.forEach(log => {
@@ -171,12 +166,16 @@
     }
 
     function logout() {
-      if (confirm('確定要登出？')) {
-        account.deleteSessions().finally(() => {
+      if (!confirm('確定要登出？')) return;
+      account.deleteSessions()
+        .then(() => {
+          sessionStorage.clear();
+          window.location.href = 'login.html';
+        })
+        .catch(() => {
           sessionStorage.clear();
           window.location.href = 'login.html';
         });
-      }
     }
   </script>
 </body>
