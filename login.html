@@ -2,15 +2,42 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>登入</title>
   <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
   <style>
-    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f0f0; }
-    .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; }
-    input, button { width: 100%; padding: 10px; margin-top: 10px; box-sizing: border-box; }
-    button { background-color: #007bff; color: white; border: none; cursor: pointer; }
-    #message { margin-top: 10px; color: red; min-height: 1.2em; }
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+    .login-box {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #message {
+      margin-top: 10px;
+      color: red;
+      min-height: 1.2em;
+    }
   </style>
 </head>
 <body>
@@ -41,14 +68,18 @@
       }
 
       try {
-        await account.deleteSessions(); // 清除舊 session
-      } catch (e) {}
+        // 嘗試刪除舊有 session
+        await account.deleteSessions();
+      } catch {}
 
       try {
         await account.createEmailSession(email, password);
         const user = await account.get();
+
+        // 儲存 user name 和 role (用 prefs.role)
         sessionStorage.setItem('loggedInUser', user.name || user.email);
-        sessionStorage.setItem('loggedInUserRole', user.labels?.includes('admin') ? 'admin' : 'viewer');
+        sessionStorage.setItem('loggedInUserRole', user.prefs?.role || 'viewer');
+
         window.location.href = 'overview.html';
       } catch (error) {
         msg.textContent = '登入失敗：' + (error.message || '請檢查帳密');
