@@ -78,8 +78,13 @@
     const name = user.name || user.email;
     document.getElementById('currentUserDisplay').textContent = `您好，${name}`;
 
-    // 從 sessionStorage 取得角色
-    isAdmin = sessionStorage.getItem('loggedInUserRole') === 'admin';
+    console.log('目前登入使用者資料：', user);
+    console.log('user.prefs:', user.prefs);
+
+    const role = user.prefs?.role || 'viewer';
+    sessionStorage.setItem('loggedInUserRole', role);
+    isAdmin = role === 'admin';
+
     if (isAdmin) {
       document.getElementById('adminForm').style.display = 'block';
     }
@@ -89,11 +94,8 @@
     sessionStorage.clear();
     window.location.href = 'login.html';
   }
-      
-console.log('目前登入使用者資料：', user);
-console.log('user.labels:', user.labels);
-
 };
+
 
 
     async function loadOverview() {
