@@ -1,8 +1,9 @@
+<!-- overview.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>物料總覽</title>
   <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
   <style>
@@ -15,7 +16,6 @@
     button { margin-top: 10px; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
     .btn-add { background: #4CAF50; color: white; }
     .btn-del { background: #dc3545; color: white; }
-    .btn-del:hover { background: #c82333; }
     #currentUserDisplay { color: #555; margin-left: 20px; }
   </style>
 </head>
@@ -78,11 +78,8 @@
         const name = user.name || user.email;
         document.getElementById('currentUserDisplay').textContent = `您好，${name}`;
 
-        // 改用 prefs.role 判斷
-        isAdmin = user.prefs?.role === 'admin';
-        if (isAdmin) {
-          document.getElementById('adminForm').style.display = 'block';
-        }
+        isAdmin = sessionStorage.getItem('loggedInUserRole') === 'admin';
+        if (isAdmin) document.getElementById('adminForm').style.display = 'block';
 
         await loadOverview();
       } catch {
@@ -94,7 +91,7 @@
     async function loadOverview() {
       try {
         const res = await db.listDocuments(DB_ID, COLLECTION_OVERVIEW, [Appwrite.Query.limit(100)]);
-        const tbody = document.getElementById('overviewTable').querySelector('tbody');
+        const tbody = document.querySelector('#overviewTable tbody');
         tbody.innerHTML = '';
         res.documents.forEach(item => {
           const row = tbody.insertRow();
@@ -123,12 +120,12 @@
 
     async function addMaterial() {
       const data = {
-        partNumber: document.getElementById('inputPartNumber').value.trim(),
-        productName: document.getElementById('inputProductName').value.trim(),
-        model: document.getElementById('inputModel').value.trim(),
-        specification: document.getElementById('inputSpecification').value.trim(),
-        unit: document.getElementById('inputUnit').value.trim(),
-        quantity: parseInt(document.getElementById('inputQuantity').value, 10),
+        partNumber: document.getElementById('inputPartNumber').value,
+        productName: document.getElementById('inputProductName').value,
+        model: document.getElementById('inputModel').value,
+        specification: document.getElementById('inputSpecification').value,
+        unit: document.getElementById('inputUnit').value,
+        quantity: parseInt(document.getElementById('inputQuantity').value),
         category: document.getElementById('inputCategory').value
       };
       if (!data.partNumber || !data.productName || isNaN(data.quantity)) {
@@ -156,16 +153,11 @@
     }
 
     function logout() {
-      if (!confirm('確定要登出？')) return;
-      account.deleteSessions()
-        .then(() => {
-          sessionStorage.clear();
-          window.location.href = 'login.html';
-        })
-        .catch(() => {
-          sessionStorage.clear();
-          window.location.href = 'login.html';
-        });
+      if (!confirm('確定登出？')) return;
+      account.deleteSessions().finally(() => {
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+      });
     }
   </script>
 </body>
