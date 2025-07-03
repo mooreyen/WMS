@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>登入</title>
   <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
   <style>
@@ -52,7 +52,7 @@
   <script>
     const client = new Appwrite.Client()
       .setEndpoint('https://nyc.cloud.appwrite.io/v1')
-      .setProject('68623cf4001bf788000e');
+      .setProject('68623cf4001bf788000e'); // Project ID
 
     const account = new Appwrite.Account(client);
 
@@ -68,17 +68,17 @@
       }
 
       try {
-        // 嘗試刪除舊有 session
         await account.deleteSessions();
       } catch {}
 
       try {
         await account.createEmailSession(email, password);
         const user = await account.get();
-
-        // 儲存 user name 和 role (用 prefs.role)
         sessionStorage.setItem('loggedInUser', user.name || user.email);
-        sessionStorage.setItem('loggedInUserRole', user.prefs?.role || 'viewer');
+
+        // 判斷 admin 身分（請根據實際 email 修改）
+        const isAdmin = (user.email === '111@abc.com');
+        sessionStorage.setItem('loggedInUserRole', isAdmin ? 'admin' : 'viewer');
 
         window.location.href = 'overview.html';
       } catch (error) {
