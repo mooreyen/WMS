@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>領入料</title>
   <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
   <style>
@@ -68,22 +68,23 @@
   <script>
     const client = new Appwrite.Client()
       .setEndpoint('https://nyc.cloud.appwrite.io/v1')
-      .setProject('68623cf4001bf788000e');
+      .setProject('68623cf4001bf788000e'); // Project ID
 
     const account = new Appwrite.Account(client);
     const db = new Appwrite.Databases(client);
 
-    const DB_ID = '68623dfd0002bed3a8a8';
-    const COLLECTION_OVERVIEW = '686242a4003b3d604c5e';
-    const COLLECTION_RECORDS = '686242b3003c33b8d444';
+    const DB_ID = '68623dfd0002bed3a8a8'; // 資料庫 ID
+    const COLLECTION_OVERVIEW = '686242a4003b3d604c5e'; // 總覽集合
+    const COLLECTION_RECORDS = '686242b3003c33b8d444'; // 記錄集合
 
     let materials = [];
 
     window.onload = async () => {
       try {
         const user = await account.get();
-        document.getElementById('currentUserDisplay').textContent = `您好，${user.name || user.email}`;
-        document.getElementById('inputFiller').value = user.name || user.email;
+        const name = user.name || user.email;
+        document.getElementById('currentUserDisplay').textContent = `您好，${name}`;
+        document.getElementById('inputFiller').value = name;
 
         const today = new Date();
         document.getElementById('inputDate').value = today.toISOString().split('T')[0];
@@ -166,16 +167,12 @@
     }
 
     function logout() {
-      if (!confirm('確定要登出？')) return;
-      account.deleteSessions()
-        .then(() => {
-          sessionStorage.clear();
-          window.location.href = 'login.html';
-        })
-        .catch(() => {
+      if (confirm('確定要登出？')) {
+        account.deleteSessions().finally(() => {
           sessionStorage.clear();
           window.location.href = 'login.html';
         });
+      }
     }
   </script>
 </body>
